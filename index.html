@@ -489,6 +489,10 @@
     <div class="month-label" id="monthLabel"></div>
     <button class="nav-btn" onclick="changeMonth(1)">›</button>
   </div>
+  <div style="display:flex;align-items:center;gap:6px;cursor:pointer" onclick="showTab('settings')" title="Sync status">
+    <div id="syncDot" style="width:8px;height:8px;border-radius:50%;background:var(--muted);transition:background .3s;flex-shrink:0"></div>
+    <span id="syncLabel" style="font-size:11px;color:var(--muted);white-space:nowrap"></span>
+  </div>
 </div>
 
 <!-- TABS -->
@@ -588,6 +592,77 @@
   </div>
 
   <div class="box" style="margin-top:16px">
+    <div class="box-header">
+      <span class="box-title cyan">Google Sheets Sync</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div id="settingsSyncDot" style="width:8px;height:8px;border-radius:50%;background:var(--muted)"></div>
+        <span id="settingsSyncLabel" style="font-size:12px;color:var(--muted)">Not connected</span>
+      </div>
+    </div>
+    <div style="padding:16px">
+      <div id="sheetsSetupDone" class="hidden">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+          <button class="btn btn-primary btn-sm" onclick="manualSync()">↻ Sync Now</button>
+          <button class="btn btn-danger btn-sm" onclick="disconnectSheets()">Disconnect</button>
+        </div>
+        <div style="font-size:12px;color:var(--muted)" id="sheetsUrlDisplay"></div>
+      </div>
+      <div id="sheetsSetupForm">
+        <p style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.6">
+          Connect a Google Sheet so your data syncs across all your devices — free, no extra account needed beyond Google.
+        </p>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px">
+          <div style="font-weight:700;font-size:13px;margin-bottom:8px;color:var(--cyan)">Step 1 — Create the Google Sheet</div>
+          <p style="font-size:12px;color:var(--muted);line-height:1.6">Go to <strong style="color:var(--text)">sheets.google.com</strong> → create a new blank sheet → name it anything (e.g. "Budget Data").</p>
+        </div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px">
+          <div style="font-weight:700;font-size:13px;margin-bottom:8px;color:var(--cyan)">Step 2 — Add the Apps Script</div>
+          <p style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">In your Sheet click <strong style="color:var(--text)">Extensions → Apps Script</strong>. Delete any existing code, paste the code below, then click <strong style="color:var(--text)">Save (💾)</strong>.</p>
+          <div style="position:relative">
+            <pre id="scriptCode" style="background:#0a0a0f;border:1px solid var(--border);border-radius:7px;padding:12px;font-size:11px;color:#a5f3fc;overflow-x:auto;line-height:1.7;white-space:pre">function doGet(e) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName('BudgetData')
+    || ss.insertSheet('BudgetData');
+  const val = sheet.getRange('A1').getValue();
+  const out = ContentService.createTextOutput(val || '{}');
+  out.setMimeType(ContentService.MimeType.JSON);
+  return out;
+}
+
+function doPost(e) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName('BudgetData')
+    || ss.insertSheet('BudgetData');
+  sheet.getRange('A1').setValue(e.postData.contents);
+  const out = ContentService.createTextOutput('{"ok":true}');
+  out.setMimeType(ContentService.MimeType.JSON);
+  return out;
+}</pre>
+            <button class="btn btn-ghost btn-sm" onclick="copyScript()" style="position:absolute;top:8px;right:8px" id="copyScriptBtn">Copy</button>
+          </div>
+        </div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px">
+          <div style="font-weight:700;font-size:13px;margin-bottom:8px;color:var(--cyan)">Step 3 — Deploy as Web App</div>
+          <p style="font-size:12px;color:var(--muted);line-height:1.8">
+            Click <strong style="color:var(--text)">Deploy → New deployment</strong><br>
+            Type: <strong style="color:var(--text)">Web app</strong><br>
+            Execute as: <strong style="color:var(--text)">Me</strong><br>
+            Who has access: <strong style="color:var(--text)">Anyone</strong><br>
+            Click <strong style="color:var(--text)">Deploy</strong> → authorize → copy the Web App URL.
+          </p>
+        </div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:4px">
+          <div style="font-weight:700;font-size:13px;margin-bottom:10px;color:var(--cyan)">Step 4 — Paste your URL here</div>
+          <input type="url" id="sheetsUrlInput" placeholder="https://script.google.com/macros/s/..."
+            style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:10px">
+          <button class="btn btn-primary" onclick="connectSheets()" style="width:100%">Connect &amp; Sync</button>
+          <div id="connectError" class="hidden" style="color:var(--red);font-size:12px;margin-top:8px"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="box" style="margin-top:16px">
     <div class="box-header"><span class="box-title orange">Data &amp; Backup</span></div>
     <div style="padding:16px;display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
       <button class="btn btn-ghost" onclick="exportData()">⬇ Export JSON</button>
@@ -597,7 +672,7 @@
       <button class="btn btn-danger" onclick="clearMonth()">🗑 Clear This Month</button>
     </div>
     <div style="padding:0 16px 16px;font-size:12px;color:var(--muted)">
-      Data is stored in your browser's local storage. Export JSON regularly as a backup — or open this file on multiple devices and sync via the JSON file.
+      Export JSON as a local backup. Google Sheets sync keeps all devices up to date automatically.
     </div>
   </div>
 </div>
@@ -684,7 +759,7 @@ function monthData() {
   return m;
 }
 
-function save() { localStorage.setItem(STORE_KEY, JSON.stringify(db)); }
+function save() { localStorage.setItem(STORE_KEY, JSON.stringify(db)); pushToSheets(); }
 function uid()  { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
 
 // ═══════════════════════════════════════════════
@@ -1056,6 +1131,7 @@ function renderCalendar() {
 //  SETTINGS / TEMPLATES
 // ═══════════════════════════════════════════════
 function renderSettings() {
+  renderSheetsUI();
   const t = db.templates;
   const all = [
     ...t.bills.map(x => ({...x, kind:'bill'})),
@@ -1448,6 +1524,130 @@ document.addEventListener('keydown', e => {
 });
 
 // ═══════════════════════════════════════════════
+//  GOOGLE SHEETS SYNC
+// ═══════════════════════════════════════════════
+const SHEETS_KEY = 'sotu-sheets-url';
+
+function getSheetsUrl() { return localStorage.getItem(SHEETS_KEY) || ''; }
+
+function setSyncUI(status, label) {
+  const colors = { synced:'#22c55e', syncing:'#fbbf24', error:'#ef4444', off:'#5a6580' };
+  const col = colors[status] || colors.off;
+  ['syncDot','settingsSyncDot'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.background = col;
+  });
+  ['syncLabel','settingsSyncLabel'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.textContent = label; el.style.color = col; }
+  });
+}
+
+async function loadFromSheets() {
+  const url = getSheetsUrl();
+  if (!url) return;
+  setSyncUI('syncing', 'Syncing…');
+  try {
+    const res  = await fetch(url + '?t=' + Date.now());
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const text = await res.text();
+    const remote = JSON.parse(text);
+    if (remote && typeof remote === 'object' && !remote.error) {
+      if (remote.months)    db.months    = { ...db.months, ...remote.months };
+      if (remote.templates) db.templates = remote.templates;
+      localStorage.setItem(STORE_KEY, JSON.stringify(db));
+      setSyncUI('synced', 'Synced ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}));
+      renderTab(activeTab);
+    }
+  } catch(e) {
+    setSyncUI('error', 'Sync failed — working offline');
+  }
+}
+
+async function pushToSheets() {
+  const url = getSheetsUrl();
+  if (!url) return;
+  setSyncUI('syncing', 'Saving…');
+  try {
+    await fetch(url, {
+      method: 'POST',
+      mode:   'no-cors',
+      body:   JSON.stringify(db)
+    });
+    setSyncUI('synced', 'Saved ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}));
+  } catch(e) {
+    setSyncUI('error', 'Save failed — kept locally');
+  }
+}
+
+async function connectSheets() {
+  const url = document.getElementById('sheetsUrlInput').value.trim();
+  const errEl = document.getElementById('connectError');
+  errEl.classList.add('hidden');
+
+  if (!url || !url.startsWith('https://script.google.com')) {
+    errEl.textContent = 'Please paste a valid Apps Script web app URL.';
+    errEl.classList.remove('hidden');
+    return;
+  }
+
+  setSyncUI('syncing', 'Testing connection…');
+  try {
+    const res = await fetch(url + '?t=' + Date.now());
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    await res.text();
+    localStorage.setItem(SHEETS_KEY, url);
+    await pushToSheets();   // push current local data up first
+    await loadFromSheets(); // then pull to confirm round-trip
+    renderSheetsUI();
+    toast('Connected to Google Sheets!');
+  } catch(e) {
+    setSyncUI('error', 'Could not connect');
+    errEl.textContent = 'Connection failed. Double-check your URL and that the deployment is set to "Anyone".';
+    errEl.classList.remove('hidden');
+  }
+}
+
+function disconnectSheets() {
+  if (!confirm('Disconnect Google Sheets? Your local data stays intact.')) return;
+  localStorage.removeItem(SHEETS_KEY);
+  setSyncUI('off', 'Not connected');
+  renderSheetsUI();
+  toast('Disconnected.');
+}
+
+function manualSync() {
+  loadFromSheets();
+}
+
+function renderSheetsUI() {
+  const url = getSheetsUrl();
+  const doneEl = document.getElementById('sheetsSetupDone');
+  const formEl = document.getElementById('sheetsSetupForm');
+  if (!doneEl || !formEl) return;
+  if (url) {
+    doneEl.classList.remove('hidden');
+    formEl.classList.add('hidden');
+    const disp = document.getElementById('sheetsUrlDisplay');
+    if (disp) disp.textContent = url.length > 60 ? url.slice(0,60)+'…' : url;
+    setSyncUI('synced', 'Connected');
+  } else {
+    doneEl.classList.add('hidden');
+    formEl.classList.remove('hidden');
+    setSyncUI('off', 'Not connected');
+  }
+}
+
+function copyScript() {
+  const code = document.getElementById('scriptCode').textContent;
+  navigator.clipboard.writeText(code).then(() => {
+    const btn = document.getElementById('copyScriptBtn');
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy', 2000);
+  });
+}
+
+// ═══════════════════════════════════════════════
 //  AUTH
 // ═══════════════════════════════════════════════
 const PASS_KEY    = 'sotu-pass-hash';
@@ -1551,6 +1751,8 @@ function openChangePassword() {
 // ═══════════════════════════════════════════════
 initAuth();
 render();
+renderSheetsUI();
+if (getSheetsUrl()) loadFromSheets();
 </script>
 </body>
 </html>
