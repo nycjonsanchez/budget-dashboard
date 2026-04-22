@@ -2,8 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>State of the Union — Budget</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>SOTU</title>
+  <!-- PWA / iOS home screen -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="SOTU">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" id="themeColorMeta" content="#0a0a0f">
+  <link rel="apple-touch-icon" id="pwaIcon" href="">
+  <link rel="icon" id="favicon" type="image/png" href="">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     :root {
@@ -14,8 +22,28 @@
       --green-bg:rgba(34,197,94,.12); --red-bg:rgba(239,68,68,.12);
       --purple-bg:rgba(168,85,247,.12); --yellow-bg:rgba(251,191,36,.12);
     }
+    /* LIGHT MODE */
+    [data-theme="light"] {
+      --bg:#f0f4f8; --surface:#ffffff; --surface2:#e8edf3; --border:#d1d9e0;
+      --text:#1a202c; --muted:#718096;
+      --green-bg:rgba(34,197,94,.1); --red-bg:rgba(239,68,68,.1);
+      --purple-bg:rgba(168,85,247,.1); --yellow-bg:rgba(251,191,36,.1);
+    }
+    [data-theme="light"] #authScreen { background:var(--bg); }
+    [data-theme="light"] .overlay { background:rgba(0,0,0,.55); }
+    [data-theme="light"] .confirm-box,.modal { box-shadow:0 8px 32px rgba(0,0,0,.12); }
+    [data-theme="light"] .badge-paid   { background:rgba(34,197,94,.18);  }
+    [data-theme="light"] .badge-unpaid { background:rgba(239,68,68,.18);  }
+    [data-theme="light"] code { background:var(--surface2); color:var(--text); }
     *{box-sizing:border-box;margin:0;padding:0}
     body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;min-height:100vh;font-size:14px;line-height:1.5}
+
+    /* iOS SAFE AREA */
+    body { padding-bottom: env(safe-area-inset-bottom); }
+
+    /* THEME TOGGLE */
+    .theme-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;transition:border-color .15s;flex-shrink:0}
+    .theme-btn:hover{border-color:var(--cyan)}
 
     /* HEADER */
     .header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 14px;display:flex;align-items:center;justify-content:space-between;height:54px;position:sticky;top:0;z-index:100;gap:8px}
@@ -38,22 +66,23 @@
     .page.active{display:block}
 
     /* SUMMARY STATS BAR */
-    .stats-bar{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
-    @media(min-width:640px){.stats-bar{grid-template-columns:repeat(6,1fr)}}
-    .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px}
+    .stats-bar{display:flex;gap:10px;margin-bottom:14px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+    .stats-bar::-webkit-scrollbar{display:none}
+    .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;flex:0 0 140px;min-width:140px}
+    @media(min-width:700px){.stat-card{flex:1;min-width:0}}
     .stat-label{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px}
-    .stat-val{font-size:18px;font-weight:800;font-variant-numeric:tabular-nums}
+    .stat-val{font-size:17px;font-weight:800;font-variant-numeric:tabular-nums}
     .stat-sub{font-size:10px;color:var(--muted);margin-top:3px}
     .progress-track{background:var(--surface2);border-radius:3px;height:3px;margin-top:6px;overflow:hidden}
     .progress-fill{height:100%;border-radius:3px;transition:width .4s}
 
     /* CHARTS */
     .charts-grid{display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:14px}
-    @media(min-width:560px){.charts-grid{grid-template-columns:repeat(2,1fr)}}
-    @media(min-width:800px){.charts-grid{grid-template-columns:repeat(3,1fr)}}
+    @media(min-width:700px){.charts-grid{grid-template-columns:repeat(3,1fr)}}
     .chart-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px}
     .chart-title{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;font-weight:700}
-    .chart-wrap{position:relative;height:180px}
+    .chart-wrap{position:relative;height:200px}
+    @media(max-width:700px){.chart-wrap{height:240px}}
 
     /* SECTION BOX */
     .box{background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:14px;overflow:hidden}
@@ -207,9 +236,12 @@
     <div class="month-label" id="monthLabel"></div>
     <button class="nav-btn" onclick="changeMonth(1)">›</button>
   </div>
-  <div style="display:flex;align-items:center;gap:5px;cursor:pointer;flex-shrink:0" onclick="showTab('settings')" title="Sync status">
-    <div id="syncDot" style="width:7px;height:7px;border-radius:50%;background:var(--muted);transition:background .3s"></div>
-    <span id="syncLabel" style="font-size:10px;color:var(--muted);white-space:nowrap;max-width:70px;overflow:hidden;text-overflow:ellipsis"></span>
+  <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+    <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="Toggle light/dark mode">🌙</button>
+    <div style="display:flex;align-items:center;gap:5px;cursor:pointer" onclick="showTab('settings')" title="Sync status">
+      <div id="syncDot" style="width:7px;height:7px;border-radius:50%;background:var(--muted);transition:background .3s"></div>
+      <span id="syncLabel" style="font-size:10px;color:var(--muted);white-space:nowrap;max-width:60px;overflow:hidden;text-overflow:ellipsis"></span>
+    </div>
   </div>
 </div>
 
@@ -656,26 +688,46 @@ function destroyCharts() {
   chartInstances = {};
 }
 
-const CHART_DEFAULTS = {
-  plugins: { legend: { labels: { color:'#e2e8f0', font:{size:11}, boxWidth:12, padding:12 } } },
-  animation: { duration: 400 }
-};
+function getThemeColors() {
+  const light = document.documentElement.dataset.theme === 'light';
+  return {
+    text:  light ? '#1a202c' : '#e2e8f0',
+    muted: light ? '#718096' : '#5a6580',
+    grid:  light ? '#d1d9e0' : '#252535',
+  };
+}
 
 function renderCharts() {
-  const { ti, tb, ts, te, tsv, rem } = totals();
+  const { ti, tb, ts, te, tsv } = totals();
   const d = monthData();
+  const tc = getThemeColors();
+  const legendBottom = {
+    display:true, position:'bottom',
+    labels:{ color:tc.text, font:{size:10}, boxWidth:10, padding:10 }
+  };
 
   // 1. Cash Flow Donut
   const cfCtx = document.getElementById('chartCashFlow')?.getContext('2d');
   if (cfCtx) {
     chartInstances.cashFlow?.destroy();
-    const vals  = [ti, tb, ts, te, tsv].filter((_,i) => [ti,tb,ts,te,tsv][i] > 0);
-    const lbls  = ['Income','Bills','Subscriptions','Expenses','Savings'].filter((_,i) => [ti,tb,ts,te,tsv][i] > 0);
-    const cols  = ['#22c55e','#ef4444','#a855f7','#fbbf24','#ec4899'].filter((_,i) => [ti,tb,ts,te,tsv][i] > 0);
+    const raw   = [ti, tb, ts, te, tsv];
+    const lbls  = ['Income','Bills','Subscriptions','Expenses','Savings'];
+    const cols  = ['#22c55e','#ef4444','#a855f7','#fbbf24','#ec4899'];
+    const vals  = raw.filter(v => v > 0);
+    const fl    = lbls.filter((_,i) => raw[i] > 0);
+    const fc    = cols.filter((_,i) => raw[i] > 0);
     chartInstances.cashFlow = new Chart(cfCtx, {
       type: 'doughnut',
-      data: { labels: lbls, datasets: [{ data: vals, backgroundColor: cols, borderWidth:0, hoverOffset:4 }] },
-      options: { ...CHART_DEFAULTS, cutout:'65%', plugins: { ...CHART_DEFAULTS.plugins, tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${fmt(ctx.raw)}` } } } }
+      data: { labels: fl, datasets: [{ data: vals, backgroundColor: fc, borderWidth:0, hoverOffset:4 }] },
+      options: {
+        animation:{ duration:400 },
+        cutout:'62%',
+        maintainAspectRatio: false,
+        plugins: {
+          legend: legendBottom,
+          tooltip:{ callbacks:{ label: ctx => ` ${ctx.label}: ${fmt(ctx.raw)}` } }
+        }
+      }
     });
   }
 
@@ -696,10 +748,18 @@ function renderCharts() {
           { label:'Actual', data: actual, backgroundColor:'rgba(239,68,68,.35)',  borderColor:'#ef4444', borderWidth:1, borderRadius:4 }
         ]
       },
-      options: { ...CHART_DEFAULTS, scales: {
-        x: { ticks:{ color:'#5a6580', font:{size:10} }, grid:{ color:'#252535' } },
-        y: { ticks:{ color:'#5a6580', font:{size:10}, callback: v => '$'+v }, grid:{ color:'#252535' } }
-      }, plugins: { ...CHART_DEFAULTS.plugins, tooltip:{ callbacks:{ label: ctx => ` ${ctx.dataset.label}: ${fmt(ctx.raw)}` } } } }
+      options: {
+        animation:{ duration:400 },
+        maintainAspectRatio: false,
+        scales: {
+          x: { ticks:{ color:tc.muted, font:{size:10} }, grid:{ color:tc.grid } },
+          y: { ticks:{ color:tc.muted, font:{size:10}, callback: v => '$'+v }, grid:{ color:tc.grid } }
+        },
+        plugins: {
+          legend: legendBottom,
+          tooltip:{ callbacks:{ label: ctx => ` ${ctx.dataset.label}: ${fmt(ctx.raw)}` } }
+        }
+      }
     });
   }
 
@@ -722,7 +782,15 @@ function renderCharts() {
     chartInstances.breakdown = new Chart(bdCtx, {
       type: 'doughnut',
       data: { labels: entries.map(([k])=>k), datasets: [{ data: entries.map(([,v])=>v), backgroundColor: palette.slice(0,entries.length), borderWidth:0, hoverOffset:4 }] },
-      options: { ...CHART_DEFAULTS, cutout:'60%', plugins: { ...CHART_DEFAULTS.plugins, tooltip:{ callbacks:{ label: ctx => ` ${ctx.label}: ${fmt(ctx.raw)}` } } } }
+      options: {
+        animation:{ duration:400 },
+        cutout:'62%',
+        maintainAspectRatio: false,
+        plugins: {
+          legend: legendBottom,
+          tooltip:{ callbacks:{ label: ctx => ` ${ctx.label}: ${fmt(ctx.raw)}` } }
+        }
+      }
     });
   }
 }
@@ -1570,8 +1638,98 @@ function toast(msg) {
 document.addEventListener('keydown', e => { if(e.key==='Escape'){closeModal();closeConfirm();closeBakeOverlay();} });
 
 // ════════════════════════════════════════════════
+//  PWA ICON
+// ════════════════════════════════════════════════
+function generateIcon() {
+  const s = 512;
+  const cv = document.createElement('canvas');
+  cv.width = s; cv.height = s;
+  const x = cv.getContext('2d');
+
+  // Background gradient
+  const g = x.createLinearGradient(0, 0, s, s);
+  g.addColorStop(0, '#0d1117'); g.addColorStop(1, '#16213e');
+  x.fillStyle = g; x.fillRect(0, 0, s, s);
+
+  // Donut chart ring (the app's signature visual)
+  const cx = s/2, cy = s/2 - 30, r = 170, lw = 48;
+  const segs = [
+    { a: -Math.PI/2,              b: -Math.PI/2 + Math.PI*1.0, c:'#22c55e' }, // income
+    { a: -Math.PI/2 + Math.PI*1.0,b: -Math.PI/2 + Math.PI*1.6, c:'#ef4444' }, // bills
+    { a: -Math.PI/2 + Math.PI*1.6,b: -Math.PI/2 + Math.PI*1.85,c:'#a855f7' }, // subs
+    { a: -Math.PI/2 + Math.PI*1.85,b:-Math.PI/2 + Math.PI*2,   c:'#fbbf24' }, // exp
+  ];
+  segs.forEach(seg => {
+    x.beginPath();
+    x.arc(cx, cy, r, seg.a, seg.b);
+    x.strokeStyle = seg.c; x.lineWidth = lw;
+    x.lineCap = 'butt'; x.stroke();
+  });
+
+  // Inner "$" in cyan with glow
+  x.shadowColor = '#00d4ff'; x.shadowBlur = 28;
+  x.fillStyle = '#00d4ff';
+  x.font = `bold 148px -apple-system, Arial, sans-serif`;
+  x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.fillText('$', cx, cy);
+  x.shadowBlur = 0;
+
+  // "SOTU" label
+  x.fillStyle = '#e2e8f0';
+  x.font = `bold 68px -apple-system, Arial, sans-serif`;
+  x.textBaseline = 'middle';
+  x.fillText('SOTU', s/2, s - 60);
+
+  // Cyan accent strip at top
+  x.fillStyle = '#00d4ff';
+  x.fillRect(0, 0, s, 7);
+
+  return cv.toDataURL('image/png');
+}
+
+function initPWA() {
+  const url = generateIcon();
+  const icon = document.getElementById('pwaIcon');
+  const fav  = document.getElementById('favicon');
+  if (icon) icon.href = url;
+  if (fav)  fav.href  = url;
+}
+
+// ════════════════════════════════════════════════
+//  THEME (light / dark)
+// ════════════════════════════════════════════════
+const THEME_KEY = 'sotu-theme';
+
+function initTheme() {
+  const saved = localStorage.getItem(THEME_KEY) || 'dark';
+  applyTheme(saved, false);
+}
+
+function toggleTheme() {
+  const current = document.documentElement.dataset.theme || 'dark';
+  applyTheme(current === 'dark' ? 'light' : 'dark', true);
+}
+
+function applyTheme(theme, redrawCharts) {
+  document.documentElement.dataset.theme = theme;
+  localStorage.setItem(THEME_KEY, theme);
+  const btn = document.getElementById('themeBtn');
+  const meta = document.getElementById('themeColorMeta');
+  if (theme === 'light') {
+    if (btn)  btn.textContent  = '☀️';
+    if (meta) meta.content = '#f0f4f8';
+  } else {
+    if (btn)  btn.textContent  = '🌙';
+    if (meta) meta.content = '#0a0a0f';
+  }
+  if (redrawCharts) { destroyCharts(); renderCharts(); }
+}
+
+// ════════════════════════════════════════════════
 //  BOOT
 // ════════════════════════════════════════════════
+initTheme();
+initPWA();
 initAuth();
 render();
 renderSheetsUI();
