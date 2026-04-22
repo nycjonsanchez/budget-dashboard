@@ -368,8 +368,38 @@ function doPost(e) {
   let sheet = ss.getSheetByName('BudgetData')
     || ss.insertSheet('BudgetData');
   sheet.getRange('A1').setValue(e.postData.contents);
+  try { updateSummary(ss, JSON.parse(e.postData.contents)); } catch(err) {}
   return ContentService.createTextOutput('{"ok":true}')
     .setMimeType(ContentService.MimeType.JSON);
+}
+function updateSummary(ss, data) {
+  let sum = ss.getSheetByName('Summary')
+    || ss.insertSheet('Summary');
+  sum.clearContents();
+  const hdrs = [['Month','Income','Bills','Subscriptions',
+                 'Expenses','Savings Contributed','Ending Balance']];
+  sum.getRange(1,1,1,7).setValues(hdrs);
+  sum.getRange(1,1,1,7).setFontWeight('bold');
+  const months = data.months || {};
+  const keys = Object.keys(months).sort().reverse();
+  let row = 2;
+  keys.forEach(key => {
+    const m = months[key]; if (!m) return;
+    const ti  = (m.income  ||[]).reduce((s,i)=>s+(+i.amount||0),0);
+    const tb  = (m.bills   ||[]).reduce((s,b)=>s+(+b.amount||0),0);
+    const ts  = (m.subs    ||[]).reduce((s,x)=>s+(+x.amount||0),0);
+    const te  = (m.expenses||[]).reduce((s,x)=>s+(+x.amount||0),0);
+    const tsv = (m.savings ||[]).reduce((s,x)=>s+(+x.actual||0),0);
+    const end = (+(m.startingBalance||0)) + ti - tb - ts - te - tsv;
+    sum.getRange(row,1,1,7).setValues(
+      [[key,ti,tb,ts,te,tsv,end]]);
+    row++;
+  });
+  // Format currency columns B-G
+  if (row > 2) {
+    sum.getRange(2,2,row-2,6)
+      .setNumberFormat('$#,##0.00');
+  }
 }</pre>
             <button class="btn btn-ghost btn-sm" onclick="copyScript()" style="position:absolute;top:6px;right:6px" id="copyScriptBtn">Copy</button>
           </div>
@@ -764,7 +794,7 @@ function renderDashboard() {
     unpaid.forEach(b => {
       const od = b.dueDate && isOverdue(b.dueDate) && curYear===now.getFullYear() && curMonth===now.getMonth();
       html += `<tr class="dr"><td>${esc(b.name)}</td><td class="amt neg">${fmt(b.amount)}</td>
-        <td class="hide-sm" style="${od?'color:var(--red)':'color:var(--yellow)'}">${b.dueDate?fmtDate(b.dueDate)+'(od?\" ⚠\":\"\")':'—'}</td>
+        <td class="hide-sm" style="${od?'color:var(--red)':'color:var(--yellow)'}">${b.dueDate ? fmtDate(b.dueDate)+(od?' ⚠':'') : '—'}</td>
         <td><button class="btn btn-success btn-sm" onclick="togglePaid('bill','${b.id}')">✓ Paid</button></td></tr>`;
     });
     html += '</tbody></table></div></div>';
@@ -1083,7 +1113,7 @@ function showModal() {
   const labels = {bill:'Bill',sub:'Subscription',expense:'Expense',income:'Income',saving:'Savings Goal',tmpl:'Recurring Template'};
   document.getElementById('modalTitle').textContent = (mId?'Edit ':'Add ') + (labels[mType]||'');
   const item = getItem();
-  document.getElementById('modalForm').innerHTML = formHTML(mType, item);
+  document.getElementById('modalForm').innerHTML = formHTML(mIsTmpl ? 'tmpl' : mType, item);
   document.getElementById('overlay').classList.remove('hidden');
 }
 
@@ -1165,7 +1195,14 @@ function formHTML(type, v) {
         <option value="sub"  ${(v.kind||mType)==='sub'?'selected':''}>Subscription</option>
       </select></div>
     </div>
-    <div class="fg"><label>Due Day (1–31)</label><input id="f-day" type="number" min="1" max="31" value="${v.day||''}" placeholder="e.g. 18"></div>`;
+    <div class="fg"><label>Due Day of Month (1–31, leave blank = no fixed date)</label><input id="f-day" type="number" min="1" max="31" value="${v.day||''}" placeholder="e.g. 18"></div>
+    <div class="fg"><label>Category (Bills only)</label><select id="f-cat">
+      <option value="credit-card" ${v.category==='credit-card'?'selected':''}>Credit Card</option>
+      <option value="loan" ${v.category==='loan'?'selected':''}>Loan / Installment</option>
+      <option value="utility" ${v.category==='utility'?'selected':''}>Utility</option>
+      <option value="insurance" ${v.category==='insurance'?'selected':''}>Insurance</option>
+      <option value="other" ${(!v.category||v.category==='other')?'selected':''}>Other</option>
+    </select></div>`;
 
   return '';
 }
@@ -1183,9 +1220,17 @@ function saveModal() {
   if (mIsTmpl) {
     const kind = document.getElementById('f-tkind')?.value || mType;
     const day  = parseInt(document.getElementById('f-day')?.value) || null;
-    const arr  = kind==='bill' ? db.templates.bills : db.templates.subs;
-    if (mId) { const item = arr.find(x=>x.id===mId); if(item){item.name=name;item.amount=amount;item.day=day;} }
-    else arr.push({id:uid(),name,amount,day});
+    const cat  = document.getElementById('f-cat')?.value || 'other';
+    if (mId) {
+      // Remove from whichever array it's currently in, then add to correct array
+      db.templates.bills = db.templates.bills.filter(x=>x.id!==mId);
+      db.templates.subs  = db.templates.subs.filter(x=>x.id!==mId);
+      const dest = kind==='bill' ? db.templates.bills : db.templates.subs;
+      dest.push({id:mId, name, amount, day, category:cat, kind});
+    } else {
+      const dest = kind==='bill' ? db.templates.bills : db.templates.subs;
+      dest.push({id:uid(), name, amount, day, category:cat, kind});
+    }
     save(); closeModal(); renderSettings(); toast('Template saved.');
     return;
   }
