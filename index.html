@@ -1,0 +1,1556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>State of the Union — Budget</title>
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #111118;
+      --surface2: #1a1a28;
+      --border: #252535;
+      --text: #e2e8f0;
+      --muted: #5a6580;
+      --cyan: #00d4ff;
+      --purple: #a855f7;
+      --orange: #f97316;
+      --green: #22c55e;
+      --red: #ef4444;
+      --yellow: #fbbf24;
+      --red-bg: rgba(239,68,68,0.12);
+      --green-bg: rgba(34,197,94,0.12);
+      --purple-bg: rgba(168,85,247,0.12);
+      --yellow-bg: rgba(251,191,36,0.12);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 56px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-title {
+      color: var(--cyan);
+      font-size: 17px;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+    }
+    .header-title span { color: var(--muted); font-weight: 400; font-size: 13px; }
+    .month-nav { display: flex; align-items: center; gap: 8px; }
+    .nav-btn {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      width: 30px; height: 30px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 15px;
+      display: flex; align-items: center; justify-content: center;
+      transition: border-color .15s;
+    }
+    .nav-btn:hover { border-color: var(--cyan); color: var(--cyan); }
+    .month-label {
+      color: var(--cyan);
+      font-weight: 700;
+      font-size: 14px;
+      min-width: 130px;
+      text-align: center;
+    }
+
+    /* ── TABS ── */
+    .tabs {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      overflow-x: auto;
+      scrollbar-width: none;
+      position: sticky;
+      top: 56px;
+      z-index: 90;
+    }
+    .tabs::-webkit-scrollbar { display: none; }
+    .tab {
+      padding: 12px 18px;
+      cursor: pointer;
+      color: var(--muted);
+      border-bottom: 2px solid transparent;
+      white-space: nowrap;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all .15s;
+      user-select: none;
+    }
+    .tab.active { color: var(--cyan); border-bottom-color: var(--cyan); }
+    .tab:hover { color: var(--text); }
+
+    /* ── CONTENT ── */
+    .page { display: none; padding: 16px; max-width: 960px; margin: 0 auto; }
+    .page.active { display: block; }
+
+    /* ── SUMMARY CARDS ── */
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    @media (min-width: 600px) { .cards { grid-template-columns: repeat(4, 1fr); } }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+    }
+    .card-label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .6px; margin-bottom: 6px; }
+    .card-amount { font-size: 22px; font-weight: 800; }
+    .card-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+    .progress-track { background: var(--surface2); border-radius: 4px; height: 4px; margin-top: 8px; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 4px; transition: width .4s; }
+    .c-income  { color: var(--green); }
+    .c-expense { color: var(--red); }
+    .c-sub     { color: var(--purple); }
+    .c-remain  { color: var(--cyan); }
+    .c-warn    { color: var(--yellow); }
+
+    /* ── SECTION BOX ── */
+    .box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+    .box-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .box-title { font-weight: 700; font-size: 14px; }
+    .box-title.cyan   { color: var(--cyan); }
+    .box-title.orange { color: var(--orange); }
+    .box-title.purple { color: var(--purple); }
+    .box-title.green  { color: var(--green); }
+    .box-title.red    { color: var(--red); }
+
+    /* ── TABLE ── */
+    .tbl-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    th {
+      padding: 9px 16px;
+      text-align: left;
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    td {
+      padding: 11px 16px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr.data-row:hover td { background: var(--surface2); }
+    .total-row td { border-top: 2px solid var(--border); font-weight: 800; font-size: 14px; }
+
+    .amt { font-weight: 700; font-variant-numeric: tabular-nums; }
+    .amt.neg { color: var(--red); }
+    .amt.pos { color: var(--green); }
+
+    /* ── BADGES ── */
+    .badge {
+      display: inline-block;
+      padding: 2px 9px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .badge-paid    { background: rgba(34,197,94,.15);  color: #4ade80; }
+    .badge-unpaid  { background: rgba(239,68,68,.15);  color: #f87171; }
+    .badge-overdue { background: rgba(251,191,36,.15); color: #fbbf24; }
+    .chip {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 11px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+
+    /* ── BUTTONS ── */
+    .btn {
+      padding: 7px 13px;
+      border-radius: 7px;
+      border: none;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 700;
+      transition: opacity .15s;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .btn:hover { opacity: .82; }
+    .btn-primary { background: var(--cyan); color: #000; }
+    .btn-ghost   { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+    .btn-success { background: rgba(34,197,94,.2); color: #4ade80; }
+    .btn-danger  { background: rgba(239,68,68,.15); color: #f87171; }
+    .btn-sm { padding: 4px 9px; font-size: 11px; }
+    .btn-icon { width: 28px; height: 28px; padding: 0; justify-content: center; }
+
+    /* ── TOGGLE ── */
+    .toggle {
+      width: 38px; height: 21px;
+      background: var(--border);
+      border-radius: 11px;
+      position: relative;
+      cursor: pointer;
+      border: none;
+      transition: background .2s;
+      flex-shrink: 0;
+    }
+    .toggle.on { background: var(--green); }
+    .toggle::after {
+      content: '';
+      position: absolute;
+      width: 15px; height: 15px;
+      background: #fff;
+      border-radius: 50%;
+      top: 3px; left: 3px;
+      transition: left .2s;
+    }
+    .toggle.on::after { left: 20px; }
+
+    /* ── MODAL ── */
+    .overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.75);
+      z-index: 200;
+      display: flex; align-items: center; justify-content: center;
+      padding: 16px;
+    }
+    .overlay.hidden { display: none; }
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px;
+      width: 100%;
+      max-width: 440px;
+      max-height: 92vh;
+      overflow-y: auto;
+    }
+    .modal h3 { color: var(--cyan); margin-bottom: 20px; font-size: 16px; }
+    .fg { margin-bottom: 14px; }
+    .fg label {
+      display: block;
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      margin-bottom: 5px;
+    }
+    .fg input, .fg select, .fg textarea {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 9px 12px;
+      border-radius: 7px;
+      font-size: 13px;
+      font-family: inherit;
+      transition: border-color .15s;
+    }
+    .fg input:focus, .fg select:focus, .fg textarea:focus {
+      outline: none;
+      border-color: var(--cyan);
+    }
+    .fg select option { background: var(--surface2); }
+    .fg textarea { resize: vertical; }
+    .frow { display: flex; gap: 12px; }
+    .frow .fg { flex: 1; }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+
+    /* ── CALENDAR ── */
+    .cal-header { padding: 14px 16px; border-bottom: 1px solid var(--border); }
+    .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); }
+    .cal-dh {
+      padding: 8px 4px;
+      text-align: center;
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .4px;
+      border-bottom: 1px solid var(--border);
+    }
+    .cal-day {
+      padding: 6px 5px;
+      min-height: 72px;
+      border-right: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+    .cal-day:nth-child(7n) { border-right: none; }
+    .cal-day.dim { opacity: .25; }
+    .day-num {
+      font-size: 12px;
+      width: 22px; height: 22px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 50%;
+      margin-bottom: 3px;
+      font-weight: 500;
+    }
+    .cal-day.today .day-num { background: var(--cyan); color: #000; font-weight: 800; }
+    .ev {
+      font-size: 10px;
+      padding: 1px 5px;
+      border-radius: 3px;
+      margin-bottom: 2px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      cursor: default;
+    }
+    .ev.ev-bill  { background: rgba(239,68,68,.2);  color: #fca5a5; }
+    .ev.ev-sub   { background: rgba(168,85,247,.2); color: #d8b4fe; }
+    .ev.ev-inc   { background: rgba(34,197,94,.2);  color: #86efac; }
+    .ev.ev-paid  { background: rgba(100,116,139,.15); color: #94a3b8; }
+
+    /* ── EMPTY STATE ── */
+    .empty { padding: 40px 24px; text-align: center; color: var(--muted); }
+    .empty .icon { font-size: 36px; margin-bottom: 12px; }
+    .empty p { margin-bottom: 8px; }
+
+    /* ── MISC ── */
+    .hidden   { display: none !important; }
+    .flex     { display: flex; }
+    .gap-6    { gap: 6px; }
+    .items-center { align-items: center; }
+    .ml-auto  { margin-left: auto; }
+    .text-muted { color: var(--muted); }
+    .text-sm  { font-size: 12px; }
+
+    @media (max-width: 520px) {
+      .hide-sm { display: none; }
+      td, th   { padding: 10px 10px; }
+      .page    { padding: 12px; }
+    }
+
+    /* ── CONFIRM DIALOG ── */
+    .confirm-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      max-width: 360px;
+      width: 100%;
+      text-align: center;
+    }
+    .confirm-box h4 { margin-bottom: 8px; font-size: 16px; }
+    .confirm-box p  { color: var(--muted); margin-bottom: 20px; font-size: 13px; }
+    .confirm-actions { display: flex; gap: 10px; justify-content: center; }
+
+    /* ── AUTH SCREEN ── */
+    #authScreen {
+      position: fixed; inset: 0;
+      background: var(--bg);
+      z-index: 500;
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px;
+    }
+    #authScreen.hidden { display: none; }
+    .auth-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 36px 28px;
+      width: 100%;
+      max-width: 360px;
+      text-align: center;
+    }
+    .auth-logo {
+      font-size: 32px;
+      margin-bottom: 8px;
+    }
+    .auth-box h2 {
+      color: var(--cyan);
+      font-size: 20px;
+      font-weight: 800;
+      margin-bottom: 4px;
+      letter-spacing: -.3px;
+    }
+    .auth-box p {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 24px;
+    }
+    .auth-box input[type="password"],
+    .auth-box input[type="text"] {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 12px 14px;
+      border-radius: 8px;
+      font-size: 15px;
+      font-family: inherit;
+      text-align: center;
+      letter-spacing: 2px;
+      margin-bottom: 12px;
+      transition: border-color .15s;
+    }
+    .auth-box input:focus { outline: none; border-color: var(--cyan); }
+    .auth-box .btn-unlock {
+      width: 100%;
+      padding: 12px;
+      background: var(--cyan);
+      color: #000;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: opacity .15s;
+    }
+    .auth-box .btn-unlock:hover { opacity: .85; }
+    .auth-error {
+      color: var(--red);
+      font-size: 12px;
+      margin-top: 10px;
+      min-height: 18px;
+    }
+    .auth-hint { color: var(--muted); font-size: 11px; margin-top: 16px; }
+
+    /* ── TOAST ── */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 13px;
+      z-index: 300;
+      transition: transform .25s;
+      pointer-events: none;
+    }
+    #toast.show { transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+
+<!-- AUTH SCREEN -->
+<div id="authScreen">
+  <div class="auth-box">
+    <div class="auth-logo">🔒</div>
+    <h2>State of the Union</h2>
+    <p id="authSubtitle">Enter your password to continue</p>
+    <input type="password" id="authInput" placeholder="••••••••" autocomplete="current-password"
+           onkeydown="if(event.key==='Enter') submitAuth()">
+    <input type="password" id="authConfirm" placeholder="Confirm password" class="hidden"
+           onkeydown="if(event.key==='Enter') submitAuth()">
+    <button class="btn-unlock" onclick="submitAuth()" id="authBtn">Unlock</button>
+    <div class="auth-error hidden" id="authError"></div>
+    <div class="auth-hint" id="authHint"></div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-title">State of the Union <span id="hYear"></span></div>
+  <div class="month-nav">
+    <button class="nav-btn" onclick="changeMonth(-1)">‹</button>
+    <div class="month-label" id="monthLabel"></div>
+    <button class="nav-btn" onclick="changeMonth(1)">›</button>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active" data-tab="dashboard"      onclick="showTab('dashboard')">Dashboard</div>
+  <div class="tab"        data-tab="bills"          onclick="showTab('bills')">Bills</div>
+  <div class="tab"        data-tab="subscriptions"  onclick="showTab('subscriptions')">Subscriptions</div>
+  <div class="tab"        data-tab="income"         onclick="showTab('income')">Income</div>
+  <div class="tab"        data-tab="calendar"       onclick="showTab('calendar')">Calendar</div>
+  <div class="tab"        data-tab="settings"       onclick="showTab('settings')">Settings</div>
+</div>
+
+<!-- PAGES -->
+<div id="page-dashboard" class="page active">
+  <div class="cards" id="summaryCards"></div>
+  <div id="dashBody"></div>
+</div>
+
+<div id="page-bills" class="page">
+  <div class="box">
+    <div class="box-header">
+      <span class="box-title orange">Bills &amp; Payments</span>
+      <button class="btn btn-primary btn-sm" onclick="openAdd('bill')">+ Add Bill</button>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th>Name</th>
+          <th>Amount</th>
+          <th class="hide-sm">Due Date</th>
+          <th class="hide-sm">Category</th>
+          <th>Paid</th>
+          <th></th>
+        </tr></thead>
+        <tbody id="billsTbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div id="page-subscriptions" class="page">
+  <div class="box">
+    <div class="box-header">
+      <span class="box-title purple">Subscriptions</span>
+      <button class="btn btn-primary btn-sm" onclick="openAdd('sub')">+ Add</button>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th>Service</th>
+          <th>Amount</th>
+          <th class="hide-sm">Renewal</th>
+          <th>Paid</th>
+          <th></th>
+        </tr></thead>
+        <tbody id="subsTbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div id="page-income" class="page">
+  <div class="box">
+    <div class="box-header">
+      <span class="box-title green">Income</span>
+      <button class="btn btn-primary btn-sm" onclick="openAdd('income')">+ Add Income</button>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th>Source</th>
+          <th>Amount</th>
+          <th class="hide-sm">Date</th>
+          <th class="hide-sm">Type</th>
+          <th></th>
+        </tr></thead>
+        <tbody id="incomeTbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div id="page-calendar" class="page">
+  <div class="box" id="calBox"></div>
+</div>
+
+<div id="page-settings" class="page">
+  <div class="box">
+    <div class="box-header">
+      <span class="box-title cyan">Recurring Templates</span>
+      <div class="flex gap-6">
+        <button class="btn btn-ghost btn-sm" onclick="openAdd('tmpl')">+ Add Template</button>
+        <button class="btn btn-primary btn-sm" onclick="applyTemplates()">Apply to Month</button>
+      </div>
+    </div>
+    <div id="tmplBody"></div>
+  </div>
+
+  <div class="box" style="margin-top:16px">
+    <div class="box-header"><span class="box-title orange">Data &amp; Backup</span></div>
+    <div style="padding:16px;display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
+      <button class="btn btn-ghost" onclick="exportData()">⬇ Export JSON</button>
+      <button class="btn btn-ghost" onclick="document.getElementById('importFile').click()">⬆ Import JSON</button>
+      <input type="file" id="importFile" class="hidden" accept=".json" onchange="importData(event)">
+      <button class="btn btn-ghost" onclick="openChangePassword()">🔒 Change Password</button>
+      <button class="btn btn-danger" onclick="clearMonth()">🗑 Clear This Month</button>
+    </div>
+    <div style="padding:0 16px 16px;font-size:12px;color:var(--muted)">
+      Data is stored in your browser's local storage. Export JSON regularly as a backup — or open this file on multiple devices and sync via the JSON file.
+    </div>
+  </div>
+</div>
+
+<!-- MODAL OVERLAY -->
+<div class="overlay hidden" id="overlay">
+  <div class="modal" id="modal">
+    <h3 id="modalTitle">Add Item</h3>
+    <div id="modalForm"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveModal()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM OVERLAY -->
+<div class="overlay hidden" id="confirmOverlay">
+  <div class="confirm-box">
+    <h4 id="confirmTitle">Are you sure?</h4>
+    <p id="confirmMsg"></p>
+    <div class="confirm-actions">
+      <button class="btn btn-ghost" onclick="closeConfirm()">Cancel</button>
+      <button class="btn btn-danger" id="confirmOk">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════
+//  DATA LAYER
+// ═══════════════════════════════════════════════
+const STORE_KEY = 'sotu-budget-v2';
+
+let db = (() => {
+  try { return JSON.parse(localStorage.getItem(STORE_KEY)) || {}; } catch { return {}; }
+})();
+
+if (!db.templates) db.templates = { bills: [], subs: [] };
+if (!db.months)    db.months    = {};
+
+// ── Seed default templates on first load ──────────
+if (!db.templates.bills.length && !db.templates.subs.length) {
+  const _id = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+  db.templates.bills = [
+    { id:_id(), name:'Citi',             amount:125,  day:18, category:'credit-card' },
+    { id:_id(), name:'CapOne',           amount:343,  day:4,  category:'credit-card' },
+    { id:_id(), name:'VZW Visa',         amount:208,  day:18, category:'credit-card' },
+    { id:_id(), name:'Amex',             amount:250,  day:18, category:'credit-card' },
+    { id:_id(), name:'Apple Card',       amount:480,  day:18, category:'credit-card' },
+    { id:_id(), name:'Discover G',       amount:100,  day:18, category:'credit-card' },
+    { id:_id(), name:'Discover J',       amount:100,  day:18, category:'credit-card' },
+    { id:_id(), name:'Affirm 1',         amount:180,  day:null, category:'loan' },
+    { id:_id(), name:'Affirm 2',         amount:212,  day:null, category:'loan' },
+    { id:_id(), name:'SoFi',             amount:220,  day:null, category:'loan' },
+    { id:_id(), name:'Verizon Wireless', amount:250,  day:18, category:'utility' },
+    { id:_id(), name:'Geico',            amount:400,  day:4,  category:'insurance' },
+  ];
+  db.templates.subs = [
+    { id:_id(), name:'Crunchyroll', amount:8,  day:null },
+    { id:_id(), name:'Hulu',        amount:18, day:null },
+    { id:_id(), name:'Apple+',      amount:48, day:null },
+    { id:_id(), name:'Spotify',     amount:20, day:null },
+    { id:_id(), name:'YouTube',     amount:24, day:null },
+    { id:_id(), name:'Peacock',     amount:8,  day:null },
+    { id:_id(), name:'Ez-Pass',     amount:0,  day:null },
+  ];
+  localStorage.setItem(STORE_KEY, JSON.stringify(db));
+}
+
+function monthKey(y, m) { return `${y}-${String(m+1).padStart(2,'0')}`; }
+function curKey()        { return monthKey(curYear, curMonth); }
+
+function monthData() {
+  const k = curKey();
+  if (!db.months[k]) db.months[k] = { income: [], bills: [], subs: [] };
+  const m = db.months[k];
+  if (!m.income) m.income = [];
+  if (!m.bills)  m.bills  = [];
+  if (!m.subs)   m.subs   = [];
+  return m;
+}
+
+function save() { localStorage.setItem(STORE_KEY, JSON.stringify(db)); }
+function uid()  { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+// ═══════════════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════════════
+const now  = new Date();
+let curYear  = now.getFullYear();
+let curMonth = now.getMonth();
+
+function changeMonth(d) {
+  curMonth += d;
+  if (curMonth > 11) { curMonth = 0; curYear++; }
+  if (curMonth < 0)  { curMonth = 11; curYear--; }
+  render();
+}
+
+const MONTHS = ['January','February','March','April','May','June',
+                'July','August','September','October','November','December'];
+
+function render() {
+  document.getElementById('monthLabel').textContent = MONTHS[curMonth];
+  document.getElementById('hYear').textContent = curYear;
+  renderTab(activeTab);
+}
+
+// ═══════════════════════════════════════════════
+//  TABS
+// ═══════════════════════════════════════════════
+let activeTab = 'dashboard';
+
+function showTab(t) {
+  document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+  document.getElementById(`page-${t}`).classList.add('active');
+  document.querySelector(`[data-tab="${t}"]`).classList.add('active');
+  activeTab = t;
+  renderTab(t);
+}
+
+function renderTab(t) {
+  switch(t) {
+    case 'dashboard':     renderDashboard();   break;
+    case 'bills':         renderBills();       break;
+    case 'subscriptions': renderSubs();        break;
+    case 'income':        renderIncome();      break;
+    case 'calendar':      renderCalendar();    break;
+    case 'settings':      renderSettings();    break;
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  FORMAT HELPERS
+// ═══════════════════════════════════════════════
+function fmt(n) {
+  const v = parseFloat(n) || 0;
+  return '$' + Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function fmtDate(s) {
+  if (!s) return '—';
+  const [y,m,d] = s.split('-').map(Number);
+  return new Date(y, m-1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function totals() {
+  const d  = monthData();
+  const ti = d.income.reduce((s,i) => s + (parseFloat(i.amount)||0), 0);
+  const tb = d.bills.reduce((s,b)  => s + (parseFloat(b.amount)||0), 0);
+  const ts = d.subs.reduce((s,s2)  => s + (parseFloat(s2.amount)||0), 0);
+  const pb = d.bills.filter(b => b.paid).reduce((s,b) => s + (parseFloat(b.amount)||0), 0);
+  const ps = d.subs.filter(s2 => s2.paid).reduce((s,s2) => s + (parseFloat(s2.amount)||0), 0);
+  const rem = ti - tb - ts;
+  return { ti, tb, ts, pb, ps, ub: tb-pb, us: ts-ps, rem };
+}
+
+function isOverdue(dateStr) {
+  if (!dateStr) return false;
+  const [y,m,d] = dateStr.split('-').map(Number);
+  return new Date(y, m-1, d) < new Date(now.getFullYear(), now.getMonth(), now.getDate());
+}
+
+// ═══════════════════════════════════════════════
+//  DASHBOARD
+// ═══════════════════════════════════════════════
+function renderDashboard() {
+  const { ti, tb, ts, pb, rem } = totals();
+  const d = monthData();
+  const paidPct  = tb > 0 ? Math.round((pb/tb)*100) : 0;
+  const spentPct = ti > 0 ? Math.min(100, Math.round(((tb+ts)/ti)*100)) : 0;
+  const over     = rem < 0;
+
+  document.getElementById('summaryCards').innerHTML = `
+    <div class="card">
+      <div class="card-label">Total Income</div>
+      <div class="card-amount c-income">${fmt(ti)}</div>
+      <div class="card-sub">${d.income.length} source${d.income.length!==1?'s':''}</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Bills</div>
+      <div class="card-amount c-expense">${fmt(tb)}</div>
+      <div class="card-sub">${paidPct}% paid</div>
+      <div class="progress-track">
+        <div class="progress-fill" style="width:${paidPct}%;background:var(--green)"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-label">Subscriptions</div>
+      <div class="card-amount c-sub">${fmt(ts)}</div>
+      <div class="card-sub">${d.subs.length} active</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Remaining</div>
+      <div class="card-amount ${over ? 'c-expense' : 'c-remain'}">${fmt(Math.abs(rem))}${over ? ' over' : ''}</div>
+      <div class="card-sub">${spentPct}% of income used</div>
+      <div class="progress-track">
+        <div class="progress-fill" style="width:${spentPct}%;background:${over?'var(--red)':spentPct>80?'var(--yellow)':'var(--cyan)'}"></div>
+      </div>
+    </div>
+  `;
+
+  let html = '';
+
+  // Unpaid bills
+  const unpaid = d.bills.filter(b => !b.paid)
+    .sort((a,b) => (a.dueDate||'9')<(b.dueDate||'9') ? -1 : 1);
+  if (unpaid.length) {
+    const ub = unpaid.reduce((s,b) => s+(parseFloat(b.amount)||0), 0);
+    html += `<div class="box">
+      <div class="box-header">
+        <span class="box-title red">Unpaid Bills (${unpaid.length})</span>
+        <span class="amt neg">${fmt(ub)}</span>
+      </div>
+      <div class="tbl-wrap"><table><thead><tr>
+        <th>Bill</th><th>Amount</th><th class="hide-sm">Due</th><th></th>
+      </tr></thead><tbody>`;
+    unpaid.forEach(b => {
+      const od = b.dueDate && isOverdue(b.dueDate) &&
+        (curYear === now.getFullYear() && curMonth === now.getMonth());
+      html += `<tr class="data-row">
+        <td>${esc(b.name)}</td>
+        <td class="amt neg">${fmt(b.amount)}</td>
+        <td class="hide-sm">${b.dueDate
+          ? `<span style="color:${od?'var(--red)':'var(--yellow)'}">${fmtDate(b.dueDate)}${od?' ⚠':''}</span>`
+          : '—'}</td>
+        <td><button class="btn btn-success btn-sm" onclick="togglePaid('bill','${b.id}')">✓ Mark Paid</button></td>
+      </tr>`;
+    });
+    html += '</tbody></table></div></div>';
+  }
+
+  // Income overview
+  if (d.income.length) {
+    html += `<div class="box">
+      <div class="box-header">
+        <span class="box-title green">Income This Month</span>
+        <span class="amt pos">${fmt(ti)}</span>
+      </div>
+      <div class="tbl-wrap"><table><tbody>`;
+    d.income.forEach(i => {
+      html += `<tr class="data-row">
+        <td>${esc(i.name)}</td>
+        <td class="amt pos">${fmt(i.amount)}</td>
+        <td class="hide-sm text-muted text-sm">${fmtDate(i.date)}</td>
+      </tr>`;
+    });
+    html += '</tbody></table></div></div>';
+  }
+
+  if (!html) {
+    html = `<div class="box"><div class="empty">
+      <div class="icon">📊</div>
+      <p>Nothing here yet for ${MONTHS[curMonth]} ${curYear}.</p>
+      <p class="text-sm">Add your income and bills to get started, or apply your recurring templates.</p>
+      <div class="flex gap-6" style="justify-content:center;margin-top:14px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="showTab('income')">+ Add Income</button>
+        <button class="btn btn-ghost"   onclick="showTab('bills')">+ Add Bills</button>
+        <button class="btn btn-ghost"   onclick="applyTemplates()">Apply Templates</button>
+      </div>
+    </div></div>`;
+  }
+
+  document.getElementById('dashBody').innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════
+//  BILLS
+// ═══════════════════════════════════════════════
+function renderBills() {
+  const d    = monthData();
+  const tbody = document.getElementById('billsTbody');
+  if (!d.bills.length) {
+    tbody.innerHTML = `<tr><td colspan="6"><div class="empty">
+      <div class="icon">📄</div><p>No bills for this month.</p>
+      <button class="btn btn-primary btn-sm" style="margin-top:8px" onclick="openAdd('bill')">+ Add Bill</button>
+    </div></td></tr>`;
+    return;
+  }
+  const sorted = [...d.bills].sort((a,b) => {
+    if (a.paid !== b.paid) return a.paid ? 1 : -1;
+    return (a.dueDate||'9') < (b.dueDate||'9') ? -1 : 1;
+  });
+  const total = d.bills.reduce((s,b) => s+(parseFloat(b.amount)||0), 0);
+
+  let html = sorted.map(b => {
+    const od = b.dueDate && isOverdue(b.dueDate) && !b.paid &&
+               curYear === now.getFullYear() && curMonth === now.getMonth();
+    const badge = b.paid ? '<span class="badge badge-paid">Paid</span>'
+                : od     ? '<span class="badge badge-overdue">Overdue</span>'
+                         : '<span class="badge badge-unpaid">Unpaid</span>';
+    return `<tr class="data-row">
+      <td style="${b.paid?'opacity:.5':''}"><strong>${esc(b.name)}</strong></td>
+      <td class="amt neg" style="${b.paid?'opacity:.5':''}">${fmt(b.amount)}</td>
+      <td class="hide-sm text-sm" style="${b.paid?'opacity:.5':''}${od?';color:var(--red)':''}">${fmtDate(b.dueDate)}</td>
+      <td class="hide-sm">${badge}</td>
+      <td><button class="toggle ${b.paid?'on':''}" onclick="togglePaid('bill','${b.id}')"></button></td>
+      <td>
+        <div class="flex gap-6 items-center">
+          <button class="btn btn-ghost btn-icon btn-sm" onclick="openEdit('bill','${b.id}')" title="Edit">✏</button>
+          <button class="btn btn-danger btn-icon btn-sm" onclick="confirmDelete('bill','${b.id}','${esc(b.name)}')" title="Delete">✕</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  html += `<tr class="total-row">
+    <td>TOTAL</td>
+    <td class="amt neg">${fmt(total)}</td>
+    <td class="hide-sm"></td><td class="hide-sm"></td><td></td><td></td>
+  </tr>`;
+
+  tbody.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════
+//  SUBSCRIPTIONS
+// ═══════════════════════════════════════════════
+function renderSubs() {
+  const d    = monthData();
+  const tbody = document.getElementById('subsTbody');
+  if (!d.subs.length) {
+    tbody.innerHTML = `<tr><td colspan="5"><div class="empty">
+      <div class="icon">🔄</div><p>No subscriptions for this month.</p>
+      <button class="btn btn-primary btn-sm" style="margin-top:8px" onclick="openAdd('sub')">+ Add Subscription</button>
+    </div></td></tr>`;
+    return;
+  }
+  const total = d.subs.reduce((s,s2) => s+(parseFloat(s2.amount)||0), 0);
+
+  let html = d.subs.map(s => `<tr class="data-row">
+    <td style="${s.paid?'opacity:.5':''}"><strong>${esc(s.name)}</strong></td>
+    <td class="amt neg" style="${s.paid?'opacity:.5':''}">${fmt(s.amount)}</td>
+    <td class="hide-sm text-sm">${fmtDate(s.renewalDate)}</td>
+    <td><button class="toggle ${s.paid?'on':''}" onclick="togglePaid('sub','${s.id}')"></button></td>
+    <td>
+      <div class="flex gap-6 items-center">
+        <button class="btn btn-ghost btn-icon btn-sm" onclick="openEdit('sub','${s.id}')" title="Edit">✏</button>
+        <button class="btn btn-danger btn-icon btn-sm" onclick="confirmDelete('sub','${s.id}','${esc(s.name)}')" title="Delete">✕</button>
+      </div>
+    </td>
+  </tr>`).join('');
+
+  html += `<tr class="total-row">
+    <td>TOTAL</td><td class="amt neg">${fmt(total)}</td>
+    <td class="hide-sm"></td><td></td><td></td>
+  </tr>`;
+
+  tbody.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════
+//  INCOME
+// ═══════════════════════════════════════════════
+function renderIncome() {
+  const d    = monthData();
+  const tbody = document.getElementById('incomeTbody');
+  if (!d.income.length) {
+    tbody.innerHTML = `<tr><td colspan="5"><div class="empty">
+      <div class="icon">💵</div><p>No income recorded this month.</p>
+      <button class="btn btn-primary btn-sm" style="margin-top:8px" onclick="openAdd('income')">+ Add Income</button>
+    </div></td></tr>`;
+    return;
+  }
+  const total = d.income.reduce((s,i) => s+(parseFloat(i.amount)||0), 0);
+
+  let html = d.income.map(i => `<tr class="data-row">
+    <td><strong>${esc(i.name)}</strong></td>
+    <td class="amt pos">${fmt(i.amount)}</td>
+    <td class="hide-sm text-sm">${fmtDate(i.date)}</td>
+    <td class="hide-sm"><span class="chip">${esc(i.type||'Other')}</span></td>
+    <td>
+      <div class="flex gap-6 items-center">
+        <button class="btn btn-ghost btn-icon btn-sm" onclick="openEdit('income','${i.id}')" title="Edit">✏</button>
+        <button class="btn btn-danger btn-icon btn-sm" onclick="confirmDelete('income','${i.id}','${esc(i.name)}')" title="Delete">✕</button>
+      </div>
+    </td>
+  </tr>`).join('');
+
+  html += `<tr class="total-row income-total">
+    <td>TOTAL</td><td class="amt pos">${fmt(total)}</td>
+    <td class="hide-sm"></td><td class="hide-sm"></td><td></td>
+  </tr>`;
+
+  tbody.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════
+//  CALENDAR
+// ═══════════════════════════════════════════════
+function renderCalendar() {
+  const d      = monthData();
+  const first  = new Date(curYear, curMonth, 1);
+  const last   = new Date(curYear, curMonth+1, 0);
+  const today  = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  // Build day-event map
+  const evMap = {};
+  const addEv = (dateStr, ev) => {
+    if (!dateStr) return;
+    const day = parseInt(dateStr.split('-')[2]);
+    const mon = parseInt(dateStr.split('-')[1]) - 1;
+    const yr  = parseInt(dateStr.split('-')[0]);
+    if (yr === curYear && mon === curMonth) {
+      if (!evMap[day]) evMap[day] = [];
+      evMap[day].push(ev);
+    }
+  };
+
+  d.bills.forEach(b => addEv(b.dueDate, { label: b.name, type: b.paid ? 'ev-paid' : 'ev-bill', amt: b.amount }));
+  d.subs.forEach(s  => addEv(s.renewalDate, { label: s.name, type: s.paid ? 'ev-paid' : 'ev-sub', amt: s.amount }));
+  d.income.forEach(i => addEv(i.date, { label: i.name, type: 'ev-inc', amt: i.amount }));
+
+  const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  let html = `<div class="cal-header">
+    <strong style="color:var(--cyan)">${MONTHS[curMonth]} ${curYear}</strong>
+    <span class="text-muted text-sm" style="margin-left:12px">
+      Bills: <span style="color:var(--red)">red</span> &nbsp;
+      Subs: <span style="color:var(--purple)">purple</span> &nbsp;
+      Income: <span style="color:var(--green)">green</span>
+    </span>
+  </div>
+  <div class="cal-grid">`;
+
+  DAYS.forEach(d2 => html += `<div class="cal-dh">${d2}</div>`);
+
+  // Leading empty cells
+  for (let i = 0; i < first.getDay(); i++) html += `<div class="cal-day dim"></div>`;
+
+  for (let d2 = 1; d2 <= last.getDate(); d2++) {
+    const isToday = today.getFullYear()===curYear && today.getMonth()===curMonth && today.getDate()===d2;
+    const evs = evMap[d2] || [];
+    html += `<div class="cal-day ${isToday?'today':''}">
+      <div class="day-num">${d2}</div>`;
+    evs.slice(0,3).forEach(e => {
+      html += `<div class="ev ${e.type}" title="${e.label} · ${fmt(e.amt)}">${e.label}</div>`;
+    });
+    if (evs.length > 3) html += `<div class="text-muted" style="font-size:10px">+${evs.length-3} more</div>`;
+    html += `</div>`;
+  }
+
+  // Trailing empty cells
+  const trail = 6 - last.getDay();
+  for (let i = 0; i < trail; i++) html += `<div class="cal-day dim"></div>`;
+
+  html += '</div>';
+  document.getElementById('calBox').innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════
+//  SETTINGS / TEMPLATES
+// ═══════════════════════════════════════════════
+function renderSettings() {
+  const t = db.templates;
+  const all = [
+    ...t.bills.map(x => ({...x, kind:'bill'})),
+    ...t.subs.map(x  => ({...x, kind:'sub'}))
+  ];
+
+  if (!all.length) {
+    document.getElementById('tmplBody').innerHTML = `<div class="empty">
+      <p>No recurring templates yet.</p>
+      <p class="text-sm">Templates let you quickly populate each month with your regular bills and subscriptions.</p>
+    </div>`;
+    return;
+  }
+
+  let html = `<div class="tbl-wrap"><table><thead><tr>
+    <th>Name</th><th>Amount</th><th>Type</th><th>Day</th><th></th>
+  </tr></thead><tbody>`;
+
+  all.forEach(t2 => {
+    html += `<tr class="data-row">
+      <td>${esc(t2.name)}</td>
+      <td class="amt neg">${fmt(t2.amount)}</td>
+      <td><span class="chip" style="${t2.kind==='sub'?'color:var(--purple)':''}">${t2.kind==='bill'?'Bill':'Sub'}</span></td>
+      <td class="text-muted text-sm">${t2.day ? `${t2.day}${ordinal(t2.day)}` : '—'}</td>
+      <td>
+        <div class="flex gap-6 items-center">
+          <button class="btn btn-ghost btn-icon btn-sm" onclick="openEditTmpl('${t2.kind}','${t2.id}')" title="Edit">✏</button>
+          <button class="btn btn-danger btn-icon btn-sm" onclick="confirmDeleteTmpl('${t2.kind}','${t2.id}','${esc(t2.name)}')" title="Delete">✕</button>
+        </div>
+      </td>
+    </tr>`;
+  });
+  html += '</tbody></table></div>';
+  document.getElementById('tmplBody').innerHTML = html;
+}
+
+function ordinal(n) {
+  const s = ['th','st','nd','rd'];
+  const v = n % 100;
+  return s[(v-20)%10]||s[v]||s[0];
+}
+
+function applyTemplates() {
+  const d  = monthData();
+  const mk = String(curMonth+1).padStart(2,'0');
+  let added = 0;
+
+  db.templates.bills.forEach(t => {
+    if (d.bills.some(b => b.name === t.name)) return;
+    const due = t.day ? `${curYear}-${mk}-${String(t.day).padStart(2,'0')}` : '';
+    d.bills.push({ id: uid(), name: t.name, amount: t.amount, dueDate: due, category: t.category||'other', paid: false, note: '' });
+    added++;
+  });
+
+  db.templates.subs.forEach(t => {
+    if (d.subs.some(s => s.name === t.name)) return;
+    const ren = t.day ? `${curYear}-${mk}-${String(t.day).padStart(2,'0')}` : '';
+    d.subs.push({ id: uid(), name: t.name, amount: t.amount, renewalDate: ren, paid: false, note: '' });
+    added++;
+  });
+
+  save();
+  toast(added ? `Applied ${added} template${added!==1?'s':''} to ${MONTHS[curMonth]}` : 'All templates already applied.');
+  renderTab(activeTab);
+}
+
+// ═══════════════════════════════════════════════
+//  MODAL
+// ═══════════════════════════════════════════════
+let mType = null, mId = null, mIsTemplate = false;
+
+function openAdd(type) {
+  mType = type; mId = null; mIsTemplate = (type === 'tmpl');
+  const labels = { bill:'Add Bill', sub:'Add Subscription', income:'Add Income', tmpl:'Add Recurring Template' };
+  document.getElementById('modalTitle').textContent = labels[type] || 'Add';
+  document.getElementById('modalForm').innerHTML = formHTML(type, null);
+  document.getElementById('overlay').classList.remove('hidden');
+}
+
+function openEdit(type, id) {
+  mType = type; mId = id; mIsTemplate = false;
+  const d = monthData();
+  const maps = { bill: d.bills, sub: d.subs, income: d.income };
+  const item = maps[type]?.find(x => x.id === id);
+  const labels = { bill:'Edit Bill', sub:'Edit Subscription', income:'Edit Income' };
+  document.getElementById('modalTitle').textContent = labels[type];
+  document.getElementById('modalForm').innerHTML = formHTML(type, item);
+  document.getElementById('overlay').classList.remove('hidden');
+}
+
+function openEditTmpl(kind, id) {
+  mType = kind; mId = id; mIsTemplate = true;
+  const arr = kind === 'bill' ? db.templates.bills : db.templates.subs;
+  const item = arr.find(x => x.id === id);
+  document.getElementById('modalTitle').textContent = `Edit Template`;
+  document.getElementById('modalForm').innerHTML = formHTML('tmpl', item, kind);
+  document.getElementById('overlay').classList.remove('hidden');
+}
+
+function closeModal() {
+  document.getElementById('overlay').classList.add('hidden');
+  mType = null; mId = null; mIsTemplate = false;
+}
+
+function formHTML(type, v, tmplKind) {
+  v = v || {};
+  if (type === 'bill') return `
+    <div class="fg"><label>Bill / Card Name</label>
+      <input id="f-name" value="${esc(v.name||'')}" placeholder="e.g. Citi Card">
+    </div>
+    <div class="frow">
+      <div class="fg"><label>Amount ($)</label>
+        <input id="f-amount" type="number" step="0.01" min="0" value="${v.amount||''}" placeholder="0.00">
+      </div>
+      <div class="fg"><label>Due Date</label>
+        <input id="f-dueDate" type="date" value="${v.dueDate||''}">
+      </div>
+    </div>
+    <div class="fg"><label>Category</label>
+      <select id="f-cat">
+        <option value="credit-card"  ${v.category==='credit-card'?'selected':''}>Credit Card</option>
+        <option value="loan"         ${v.category==='loan'?'selected':''}>Loan / Installment</option>
+        <option value="utility"      ${v.category==='utility'?'selected':''}>Utility</option>
+        <option value="insurance"    ${v.category==='insurance'?'selected':''}>Insurance</option>
+        <option value="other"        ${(!v.category||v.category==='other')?'selected':''}>Other</option>
+      </select>
+    </div>
+    <div class="fg"><label>Notes (optional)</label>
+      <textarea id="f-note" rows="2" placeholder="e.g. minimum payment">${esc(v.note||'')}</textarea>
+    </div>`;
+
+  if (type === 'sub') return `
+    <div class="fg"><label>Service Name</label>
+      <input id="f-name" value="${esc(v.name||'')}" placeholder="e.g. Netflix">
+    </div>
+    <div class="frow">
+      <div class="fg"><label>Amount ($)</label>
+        <input id="f-amount" type="number" step="0.01" min="0" value="${v.amount||''}" placeholder="0.00">
+      </div>
+      <div class="fg"><label>Renewal Date</label>
+        <input id="f-renewalDate" type="date" value="${v.renewalDate||''}">
+      </div>
+    </div>
+    <div class="fg"><label>Notes (optional)</label>
+      <textarea id="f-note" rows="2" placeholder="optional">${esc(v.note||'')}</textarea>
+    </div>`;
+
+  if (type === 'income') return `
+    <div class="fg"><label>Source</label>
+      <input id="f-name" value="${esc(v.name||'')}" placeholder="e.g. Paycheck">
+    </div>
+    <div class="frow">
+      <div class="fg"><label>Amount ($)</label>
+        <input id="f-amount" type="number" step="0.01" min="0" value="${v.amount||''}" placeholder="0.00">
+      </div>
+      <div class="fg"><label>Date</label>
+        <input id="f-date" type="date" value="${v.date||''}">
+      </div>
+    </div>
+    <div class="fg"><label>Type</label>
+      <select id="f-type">
+        <option value="Salary"    ${v.type==='Salary'?'selected':''}>Salary / Paycheck</option>
+        <option value="Freelance" ${v.type==='Freelance'?'selected':''}>Freelance</option>
+        <option value="Bonus"     ${v.type==='Bonus'?'selected':''}>Bonus</option>
+        <option value="Other"     ${(!v.type||v.type==='Other')?'selected':''}>Other</option>
+      </select>
+    </div>
+    <div class="fg"><label>Notes (optional)</label>
+      <textarea id="f-note" rows="2" placeholder="optional">${esc(v.note||'')}</textarea>
+    </div>`;
+
+  if (type === 'tmpl') {
+    const kind = tmplKind || v.kind || 'bill';
+    return `
+      <div class="fg"><label>Name</label>
+        <input id="f-name" value="${esc(v.name||'')}" placeholder="e.g. Citi Card">
+      </div>
+      <div class="frow">
+        <div class="fg"><label>Amount ($)</label>
+          <input id="f-amount" type="number" step="0.01" min="0" value="${v.amount||''}" placeholder="0.00">
+        </div>
+        <div class="fg"><label>Type</label>
+          <select id="f-tkind">
+            <option value="bill" ${kind==='bill'?'selected':''}>Bill</option>
+            <option value="sub"  ${kind==='sub'?'selected':''}>Subscription</option>
+          </select>
+        </div>
+      </div>
+      <div class="fg"><label>Due Day of Month (1–31)</label>
+        <input id="f-day" type="number" min="1" max="31" value="${v.day||''}" placeholder="e.g. 18">
+      </div>`;
+  }
+  return '';
+}
+
+function saveModal() {
+  const name   = document.getElementById('f-name')?.value?.trim();
+  const amount = parseFloat(document.getElementById('f-amount')?.value);
+
+  if (!name)         { shakeField('f-name');   return; }
+  if (isNaN(amount)) { shakeField('f-amount'); return; }
+
+  if (mIsTemplate) {
+    const kind    = document.getElementById('f-tkind')?.value || mType;
+    const day     = parseInt(document.getElementById('f-day')?.value) || null;
+    const arr     = kind === 'bill' ? db.templates.bills : db.templates.subs;
+
+    if (mId) {
+      const item = arr.find(x => x.id === mId);
+      if (item) { item.name = name; item.amount = amount; item.day = day; }
+    } else {
+      arr.push({ id: uid(), name, amount, day });
+    }
+    save(); closeModal(); renderSettings(); toast('Template saved.');
+    return;
+  }
+
+  const d = monthData();
+
+  if (mType === 'bill') {
+    const item = {
+      id: mId || uid(), name, amount,
+      dueDate:  document.getElementById('f-dueDate')?.value  || '',
+      category: document.getElementById('f-cat')?.value      || 'other',
+      note:     document.getElementById('f-note')?.value     || '',
+      paid:     mId ? (d.bills.find(b => b.id===mId)?.paid || false) : false
+    };
+    if (mId) { const i = d.bills.findIndex(b => b.id===mId); d.bills[i] = item; }
+    else d.bills.push(item);
+  }
+
+  if (mType === 'sub') {
+    const item = {
+      id: mId || uid(), name, amount,
+      renewalDate: document.getElementById('f-renewalDate')?.value || '',
+      note:        document.getElementById('f-note')?.value        || '',
+      paid:        mId ? (d.subs.find(s => s.id===mId)?.paid || false) : false
+    };
+    if (mId) { const i = d.subs.findIndex(s => s.id===mId); d.subs[i] = item; }
+    else d.subs.push(item);
+  }
+
+  if (mType === 'income') {
+    const item = {
+      id:   mId || uid(), name, amount,
+      date: document.getElementById('f-date')?.value || '',
+      type: document.getElementById('f-type')?.value || 'Other',
+      note: document.getElementById('f-note')?.value || ''
+    };
+    if (mId) { const i = d.income.findIndex(x => x.id===mId); d.income[i] = item; }
+    else d.income.push(item);
+  }
+
+  save(); closeModal(); renderTab(activeTab); toast('Saved.');
+}
+
+// ═══════════════════════════════════════════════
+//  ACTIONS
+// ═══════════════════════════════════════════════
+function togglePaid(type, id) {
+  const d  = monthData();
+  const maps = { bill: d.bills, sub: d.subs };
+  const item = maps[type]?.find(x => x.id === id);
+  if (item) item.paid = !item.paid;
+  save();
+  renderTab(activeTab);
+  // Also refresh dashboard unpaid list if we're there
+  if (activeTab !== 'dashboard') renderDashboard();
+}
+
+// ═══════════════════════════════════════════════
+//  CONFIRM DELETE
+// ═══════════════════════════════════════════════
+let _onConfirm = null;
+
+function confirmDelete(type, id, name) {
+  document.getElementById('confirmTitle').textContent = 'Delete item?';
+  document.getElementById('confirmMsg').textContent   = `"${name}" will be removed from this month.`;
+  _onConfirm = () => {
+    const d = monthData();
+    const maps = { bill: 'bills', sub: 'subs', income: 'income' };
+    const key  = maps[type];
+    d[key] = d[key].filter(x => x.id !== id);
+    save(); renderTab(activeTab); toast('Deleted.');
+  };
+  document.getElementById('confirmOverlay').classList.remove('hidden');
+  document.getElementById('confirmOk').onclick = () => { _onConfirm(); closeConfirm(); };
+}
+
+function confirmDeleteTmpl(kind, id, name) {
+  document.getElementById('confirmTitle').textContent = 'Delete template?';
+  document.getElementById('confirmMsg').textContent   = `"${name}" will be removed from recurring templates.`;
+  _onConfirm = () => {
+    const arr = kind === 'bill' ? db.templates.bills : db.templates.subs;
+    const key  = kind === 'bill' ? 'bills' : 'subs';
+    db.templates[key] = arr.filter(x => x.id !== id);
+    save(); renderSettings(); toast('Template deleted.');
+  };
+  document.getElementById('confirmOverlay').classList.remove('hidden');
+  document.getElementById('confirmOk').onclick = () => { _onConfirm(); closeConfirm(); };
+}
+
+function closeConfirm() {
+  document.getElementById('confirmOverlay').classList.add('hidden');
+  _onConfirm = null;
+}
+
+function clearMonth() {
+  document.getElementById('confirmTitle').textContent = `Clear ${MONTHS[curMonth]} ${curYear}?`;
+  document.getElementById('confirmMsg').textContent   = 'All income, bills, and subscriptions for this month will be deleted.';
+  _onConfirm = () => {
+    db.months[curKey()] = { income: [], bills: [], subs: [] };
+    save(); renderTab(activeTab); toast('Month cleared.');
+  };
+  document.getElementById('confirmOverlay').classList.remove('hidden');
+  document.getElementById('confirmOk').onclick = () => { _onConfirm(); closeConfirm(); };
+}
+
+// ═══════════════════════════════════════════════
+//  EXPORT / IMPORT
+// ═══════════════════════════════════════════════
+function exportData() {
+  const blob = new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = Object.assign(document.createElement('a'), { href: url, download: `budget-backup-${curKey()}.json` });
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importData(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const imported = JSON.parse(ev.target.result);
+      // Merge months
+      Object.entries(imported.months || {}).forEach(([k, mv]) => {
+        if (!db.months[k]) { db.months[k] = mv; return; }
+        ['income','bills','subs'].forEach(key => {
+          const existing = new Set((db.months[k][key]||[]).map(x => x.id));
+          (mv[key]||[]).forEach(item => { if (!existing.has(item.id)) db.months[k][key].push(item); });
+        });
+      });
+      // Merge templates
+      if (imported.templates) {
+        ['bills','subs'].forEach(key => {
+          const existing = new Set((db.templates[key]||[]).map(x => x.id));
+          (imported.templates[key]||[]).forEach(t => { if (!existing.has(t.id)) db.templates[key].push(t); });
+        });
+      }
+      save(); renderTab(activeTab); toast('Data imported successfully!');
+    } catch { toast('Invalid JSON file.'); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+// ═══════════════════════════════════════════════
+//  UTILS
+// ═══════════════════════════════════════════════
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+let toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+function shakeField(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.style.borderColor = 'var(--red)';
+  el.focus();
+  setTimeout(() => el.style.borderColor = '', 1500);
+}
+
+// Close modals on overlay click
+document.getElementById('overlay').addEventListener('click', e => { if (e.target === document.getElementById('overlay')) closeModal(); });
+document.getElementById('confirmOverlay').addEventListener('click', e => { if (e.target === document.getElementById('confirmOverlay')) closeConfirm(); });
+
+// Keyboard: Escape closes modals
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeModal(); closeConfirm(); }
+});
+
+// ═══════════════════════════════════════════════
+//  AUTH
+// ═══════════════════════════════════════════════
+const PASS_KEY    = 'sotu-pass-hash';
+const SESSION_KEY = 'sotu-authed';
+let authMode = 'login'; // 'setup' | 'login' | 'change'
+
+async function sha256(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return [...new Uint8Array(buf)].map(x => x.toString(16).padStart(2,'0')).join('');
+}
+
+function initAuth() {
+  const hasPass = !!localStorage.getItem(PASS_KEY);
+  const authed  = !!sessionStorage.getItem(SESSION_KEY);
+
+  if (authed) { hideAuth(); return; }
+
+  if (!hasPass) {
+    authMode = 'setup';
+    document.getElementById('authSubtitle').textContent = 'Create a password to protect your dashboard';
+    document.getElementById('authConfirm').classList.remove('hidden');
+    document.getElementById('authBtn').textContent = 'Set Password';
+    document.getElementById('authHint').textContent = 'You\'ll enter this every time you open the app.';
+  } else {
+    authMode = 'login';
+    document.getElementById('authHint').textContent = 'Session expires when you close the tab.';
+  }
+
+  document.getElementById('authScreen').classList.remove('hidden');
+  setTimeout(() => document.getElementById('authInput').focus(), 100);
+}
+
+async function submitAuth() {
+  const input   = document.getElementById('authInput').value;
+  const confirm = document.getElementById('authConfirm').value;
+  const errEl   = document.getElementById('authError');
+  errEl.classList.add('hidden');
+
+  if (!input) { showAuthError('Please enter a password.'); return; }
+
+  if (authMode === 'setup') {
+    if (input.length < 4) { showAuthError('Use at least 4 characters.'); return; }
+    if (input !== confirm) { showAuthError('Passwords don\'t match.'); return; }
+    const hash = await sha256(input);
+    localStorage.setItem(PASS_KEY, hash);
+    sessionStorage.setItem(SESSION_KEY, '1');
+    hideAuth();
+    toast('Password set! You\'re all locked in.');
+    return;
+  }
+
+  if (authMode === 'login') {
+    const hash   = await sha256(input);
+    const stored = localStorage.getItem(PASS_KEY);
+    if (hash === stored) {
+      sessionStorage.setItem(SESSION_KEY, '1');
+      hideAuth();
+    } else {
+      showAuthError('Incorrect password. Try again.');
+      document.getElementById('authInput').value = '';
+      document.getElementById('authInput').focus();
+    }
+    return;
+  }
+
+  if (authMode === 'change') {
+    if (input.length < 4) { showAuthError('Use at least 4 characters.'); return; }
+    if (input !== confirm) { showAuthError('Passwords don\'t match.'); return; }
+    const hash = await sha256(input);
+    localStorage.setItem(PASS_KEY, hash);
+    hideAuth();
+    toast('Password updated!');
+  }
+}
+
+function showAuthError(msg) {
+  const el = document.getElementById('authError');
+  el.textContent = msg;
+  el.classList.remove('hidden');
+}
+
+function hideAuth() {
+  document.getElementById('authScreen').classList.add('hidden');
+}
+
+function openChangePassword() {
+  authMode = 'change';
+  document.getElementById('authSubtitle').textContent = 'Choose a new password';
+  document.getElementById('authConfirm').classList.remove('hidden');
+  document.getElementById('authBtn').textContent = 'Update Password';
+  document.getElementById('authHint').textContent = '';
+  document.getElementById('authInput').value = '';
+  document.getElementById('authConfirm').value = '';
+  document.getElementById('authError').classList.add('hidden');
+  document.getElementById('authScreen').classList.remove('hidden');
+  setTimeout(() => document.getElementById('authInput').focus(), 100);
+}
+
+// ═══════════════════════════════════════════════
+//  BOOT
+// ═══════════════════════════════════════════════
+initAuth();
+render();
+</script>
+</body>
+</html>
