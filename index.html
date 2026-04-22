@@ -623,10 +623,13 @@
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName('BudgetData')
     || ss.insertSheet('BudgetData');
-  const val = sheet.getRange('A1').getValue();
-  const out = ContentService.createTextOutput(val || '{}');
-  out.setMimeType(ContentService.MimeType.JSON);
-  return out;
+  const val = sheet.getRange('A1').getValue() || '{}';
+  const cb  = (e.parameter || {}).callback;
+  const body = cb ? cb + '(' + val + ')' : val;
+  const mime = cb
+    ? ContentService.MimeType.JAVASCRIPT
+    : ContentService.MimeType.JSON;
+  return ContentService.createTextOutput(body).setMimeType(mime);
 }
 
 function doPost(e) {
@@ -634,9 +637,8 @@ function doPost(e) {
   let sheet = ss.getSheetByName('BudgetData')
     || ss.insertSheet('BudgetData');
   sheet.getRange('A1').setValue(e.postData.contents);
-  const out = ContentService.createTextOutput('{"ok":true}');
-  out.setMimeType(ContentService.MimeType.JSON);
-  return out;
+  return ContentService.createTextOutput('{"ok":true}')
+    .setMimeType(ContentService.MimeType.JSON);
 }</pre>
             <button class="btn btn-ghost btn-sm" onclick="copyScript()" style="position:absolute;top:8px;right:8px" id="copyScriptBtn">Copy</button>
           </div>
@@ -1543,69 +1545,79 @@ function setSyncUI(status, label) {
   });
 }
 
-async function loadFromSheets() {
-  const url = getSheetsUrl();
-  if (!url) return;
-  setSyncUI('syncing', 'Syncing…');
-  try {
-    const res  = await fetch(url + '?t=' + Date.now());
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const text = await res.text();
-    const remote = JSON.parse(text);
-    if (remote && typeof remote === 'object' && !remote.error) {
-      if (remote.months)    db.months    = { ...db.months, ...remote.months };
-      if (remote.templates) db.templates = remote.templates;
-      localStorage.setItem(STORE_KEY, JSON.stringify(db));
-      setSyncUI('synced', 'Synced ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}));
-      renderTab(activeTab);
-    }
-  } catch(e) {
-    setSyncUI('error', 'Sync failed — working offline');
-  }
+// JSONP loader — bypasses CORS restriction on Apps Script GET requests
+function jsonpFetch(url) {
+  return new Promise((resolve, reject) => {
+    const cbName = '_sc' + Date.now();
+    const script = document.createElement('script');
+    let settled  = false;
+
+    const cleanup = () => {
+      settled = true;
+      delete window[cbName];
+      if (script.parentNode) script.parentNode.removeChild(script);
+    };
+
+    window[cbName] = (data) => { cleanup(); resolve(data); };
+    script.onerror  = ()     => { cleanup(); reject(new Error('Script load failed')); };
+    script.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + cbName + '&t=' + Date.now();
+
+    setTimeout(() => { if (!settled) { cleanup(); reject(new Error('Timeout')); } }, 12000);
+    document.body.appendChild(script);
+  });
 }
 
-async function pushToSheets() {
+function loadFromSheets() {
+  const url = getSheetsUrl();
+  if (!url) return Promise.resolve();
+  setSyncUI('syncing', 'Syncing…');
+  return jsonpFetch(url)
+    .then(remote => {
+      if (remote && typeof remote === 'object') {
+        if (remote.months)    db.months    = { ...db.months, ...remote.months };
+        if (remote.templates) db.templates = remote.templates;
+        localStorage.setItem(STORE_KEY, JSON.stringify(db));
+        setSyncUI('synced', 'Synced ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}));
+        renderTab(activeTab);
+      }
+    })
+    .catch(() => setSyncUI('error', 'Sync failed — working offline'));
+}
+
+function pushToSheets() {
   const url = getSheetsUrl();
   if (!url) return;
   setSyncUI('syncing', 'Saving…');
-  try {
-    await fetch(url, {
-      method: 'POST',
-      mode:   'no-cors',
-      body:   JSON.stringify(db)
-    });
-    setSyncUI('synced', 'Saved ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}));
-  } catch(e) {
-    setSyncUI('error', 'Save failed — kept locally');
-  }
+  // no-cors POST: response is opaque but the write still happens
+  fetch(url, { method:'POST', mode:'no-cors', body: JSON.stringify(db) })
+    .then(() => setSyncUI('synced', 'Saved ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})))
+    .catch(()  => setSyncUI('error', 'Save failed — kept locally'));
 }
 
-async function connectSheets() {
-  const url = document.getElementById('sheetsUrlInput').value.trim();
+function connectSheets() {
+  const url   = document.getElementById('sheetsUrlInput').value.trim();
   const errEl = document.getElementById('connectError');
   errEl.classList.add('hidden');
 
   if (!url || !url.startsWith('https://script.google.com')) {
-    errEl.textContent = 'Please paste a valid Apps Script web app URL.';
+    errEl.textContent = 'Please paste a valid Apps Script web app URL (starts with https://script.google.com).';
     errEl.classList.remove('hidden');
     return;
   }
 
   setSyncUI('syncing', 'Testing connection…');
-  try {
-    const res = await fetch(url + '?t=' + Date.now());
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    await res.text();
-    localStorage.setItem(SHEETS_KEY, url);
-    await pushToSheets();   // push current local data up first
-    await loadFromSheets(); // then pull to confirm round-trip
-    renderSheetsUI();
-    toast('Connected to Google Sheets!');
-  } catch(e) {
-    setSyncUI('error', 'Could not connect');
-    errEl.textContent = 'Connection failed. Double-check your URL and that the deployment is set to "Anyone".';
-    errEl.classList.remove('hidden');
-  }
+  jsonpFetch(url)
+    .then(() => {
+      localStorage.setItem(SHEETS_KEY, url);
+      pushToSheets();
+      return loadFromSheets();
+    })
+    .then(() => { renderSheetsUI(); toast('Connected to Google Sheets! ✓'); })
+    .catch(() => {
+      setSyncUI('error', 'Could not connect');
+      errEl.textContent = 'Connection failed. Make sure you updated the Apps Script code (Step 2) and redeployed as a new version.';
+      errEl.classList.remove('hidden');
+    });
 }
 
 function disconnectSheets() {
